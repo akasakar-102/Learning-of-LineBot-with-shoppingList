@@ -98,7 +98,7 @@ function addShopList(message) {
       break;
     }
   }
-  return itemInMessage + 'をリストに加えたにゃん';
+  return itemInMessage + 'をリストに加えたにゃん \n' + sendShopList();
 }
 
 
@@ -118,5 +118,5 @@ function deleteShopList(message) {
       break;
     }
   }
-  return itemFromIndex + 'をリストから削除したにゃん';
+  return itemFromIndex + 'をリストから削除したにゃん \n' + sendShopList();
 }
