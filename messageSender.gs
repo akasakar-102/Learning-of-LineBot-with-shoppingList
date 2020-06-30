@@ -4,6 +4,9 @@ const GET_SHOPPING_LIST = '確認'
 const ADD_SHOPPING_LIST = '追加'
 const DELETE_SHOPPING_LIST = '削除'
 const HAS_BOUGHT = '買ったよ'
+const HELP = '使い方'
+const OTHER_KEYWORD = ['とら','なでなで','にゃ']
+const OTHER_MESSAGE = ['にゃ～ん','にゃ～～ん','にゃ～～～ん','にゃ～～～～ん','ゴロゴロ','めし(ΦωΦ)','どうも、とらです']
 var listSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('list');
 
 function doPost(e) {
@@ -37,6 +40,9 @@ function doPost(e) {
 }
 
 function makeMessage(message) {
+  if (message.indexOf(HELP) != -1) {
+    return sendHelp();
+  }
   if (message.indexOf(GET_SHOPPING_LIST) != -1) {
     return sendShopList();
   }
@@ -49,12 +55,44 @@ function makeMessage(message) {
   if (message.indexOf(HAS_BOUGHT) != -1) {
     return deleteShopList(message);
   }
+  if (matchedOtherKeyWord(message)) {
+    return otherMessage();
+  }
   return "ちょっと何言ってるか分かんない。";
+}
+
+function sendHelp() {
+  var helpText = '使い方にゃん \n'
+  helpText += 'リストを確認\n　…「"確認"」\n'
+  helpText += 'リストに追加\n　…「○○ "を" "追加"」\n'
+  helpText += '　または「○○ "、" "追加"」\n'
+  helpText += 'リストから削除\n　…「n(数字) "を" "削除"」\n'
+  helpText += '　または「n(数字) "、" "追加"」\n'
+  helpText += '※"削除"の代わりに"買ったよ"でもいいにゃん'
+  return helpText;
+}
+
+function matchedOtherKeyWord(message) {
+  for(var keyWord of OTHER_KEYWORD) {
+    if(message.indexOf(keyWord) != -1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+function otherMessage() {
+  var index = Math.floor(Math.random() * OTHER_MESSAGE.length);
+  return OTHER_MESSAGE[index];
 }
 
 function sendShopList() {
   var shoppingListRange = listSheet.getRange(2, 1, 100, 3);
   var resultList = makeResultList(shoppingListRange);
+  if(resultList.length < 1) {
+    return 'お買い物リストは空だにゃん、早く帰ってきて～(=￣ω￣=)';
+  }
 
   var replyContent = 'お買い物リストはこんな感じにゃ \n';
   for(var row of resultList) {
