@@ -6,8 +6,8 @@ const DELETE_SHOPPING_LIST = '削除'
 const HAS_BOUGHT = '買ったよ'
 const HELP = '使い方'
 const OTHER_KEYWORD = ['とら','なでなで','にゃ']
-const OTHER_MESSAGE = ['にゃ～ん','にゃ～～ん','にゃ～～～ん','にゃ～～～～ん','ゴロゴロ','めし(ΦωΦ)','どうも、とらです']
-var listSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('list');
+const OTHER_MESSAGE = ['にゃ～ん','にゃ～～ん','にゃ～～～ん','にゃ～～～～ん','ゴロゴロ','めし(ΦωΦ)','どうも、とらです','ちょっと何言ってるか分かんない。']
+var listSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('shopping');
 
 function doPost(e) {
   var json = JSON.parse(e.postData.contents);
@@ -21,6 +21,10 @@ function doPost(e) {
   //メッセージ取得
   var message = json.events[0].message.text;  
   var replyContent = makeMessage(message);
+  
+  if(replyContent == "") {
+    return;
+  }
   // メッセージを返信    
   UrlFetchApp.fetch(line_endpoint, {
     'headers': {
@@ -58,7 +62,7 @@ function makeMessage(message) {
   if (matchedOtherKeyWord(message)) {
     return otherMessage();
   }
-  return "ちょっと何言ってるか分かんない。";
+  return "";
 }
 
 function sendHelp() {
@@ -67,7 +71,7 @@ function sendHelp() {
   helpText += 'リストに追加\n　…「○○ "を" "追加"」\n'
   helpText += '　または「○○ "、" "追加"」\n'
   helpText += 'リストから削除\n　…「n(数字) "を" "削除"」\n'
-  helpText += '　または「n(数字) "、" "追加"」\n'
+  helpText += '　または「n(数字) "、" "削除"」\n'
   helpText += '※"削除"の代わりに"買ったよ"でもいいにゃん'
   return helpText;
 }
@@ -141,20 +145,44 @@ function addShopList(message) {
 
 
 function deleteShopList(message) {
-  var indexInMessage = message.split(/[、を]/)[0];
-  var listSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('list');
+  var returnMessage = '';
+  var toBeDeleteRowsList = [];
+  var indexInMessage = message.split(/[、を]/)[0].split(',');
   var shoppingListRange = listSheet.getRange(2, 1, 100, 3);
-  for (var j = 0; j < shoppingListRange.getValues().length; j++) {
-    if(shoppingListRange.getValues()[j][0] == indexInMessage) {
-      var itemFromIndex = shoppingListRange.getValues()[j][1];
-      if(itemFromIndex == '') {
-        return indexInMessage + '番目には何も入っていないにゃん、アホ！';
+  for(var index of indexInMessage) {
+    for(var j = 0; j < shoppingListRange.getValues().length; j++) {
+      if(shoppingListRange.getValues()[j][0] == index) {
+        var itemFromIndex = shoppingListRange.getValues()[j][1];
+        if(itemFromIndex == '') {
+          returnMessage += '番目には何も入っていないにゃん、アホ！';
+          continue;
+        }
+        var rowNum = j + 2;
+        toBeDeleteRowsList.push(rowNum);
+        returnMessage += itemFromIndex + 'をリストから削除したにゃん \n'
+        break;
       }
-      var rowNum = j + 2;
-      listSheet.deleteRows(rowNum, 1);
-      listSheet.getRange(99,1,1,1).copyTo(listSheet.getRange(100,1,1,1));
-      break;
     }
   }
-  return itemFromIndex + 'をリストから削除したにゃん \n' + sendShopList();
+  deleteList(listSheet,toBeDeleteRowsList);
+  return returnMessage + sendShopList();
+}
+
+function deleteList(listSheet,toBeDeleteRowsList) {
+  //toBeDeleteRowsListを降順にする
+  var list = toBeDeleteRowsList.sort(sorting_desc);
+  for(var delRow of list) {
+    listSheet.deleteRows(delRow, 1);
+    listSheet.getRange(99,1,1,1).copyTo(listSheet.getRange(100,1,1,1));
+  }
+}
+
+function sorting_desc(a, b){
+  if(a > b){
+    return -1;
+  }else if(a[0] < b[0] ){
+    return 1;
+  }else{
+   return 0;
+  }
 }
